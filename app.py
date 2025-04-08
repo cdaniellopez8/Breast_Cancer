@@ -34,7 +34,7 @@ with st.sidebar:
     st.markdown("""
     <hr>
     <div style="text-align: center; font-size: 0.9em; color: gray;">
-        Desarrollado por Carlos D. López
+        Desarrollado por Carlos D. López P.
     </div>
     """, unsafe_allow_html=True)
 
