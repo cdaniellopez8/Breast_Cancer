@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
+import plotly.figure_factory as ff
+import numpy as np
 from io import BytesIO
 import requests
 from ucimlrepo import fetch_ucirepo 
@@ -96,7 +98,7 @@ st.markdown("""
 """)
 
 # Título variable seleccionada
-st.markdown(f"### Análisis de la variable: <span style='color:#2a9df4; font-weight:bold'>{variable_seleccionada}</span>", unsafe_allow_html=True)
+st.markdown(f"## Análisis de la variable: <span style='color:#2a9df4; font-weight:bold'>{variable_seleccionada}</span>", unsafe_allow_html=True)
 
 # Subconjunto de datos
 valores = df[variable_seleccionada]
@@ -104,20 +106,43 @@ diagnostico = df['Diagnóstico']
 
 # Gráficos
 st.subheader("Distribución de la variable")
+st.markdown("""
+    <div style="text-align: justify;">
+        A continuacion se presenta un histograma y un diagrama de caja y bigotes interactivos de la variable seleccionada por tipo de diagnostico
+    </div>
+    """, unsafe_allow_html=True)
+
 col1, col2 = st.columns(2)
 
+# Histograma
 with col1:
-    fig, ax = plt.subplots()
-    sns.histplot(valores, kde=True, bins=30, color='steelblue', ax=ax)
-    ax.set_title("Histograma")
-    st.pyplot(fig)
+    fig = px.histogram(
+        df,
+        x=variable_seleccionada,
+        nbins=30,
+        marginal="rug",
+        title="Histograma",
+        color_discrete_sequence=["steelblue"]
+    )
+    
+    fig.update_traces(marker=dict(line=dict(color="black", width=1)))  # Línea negra alrededor de las barras
+    
+    st.plotly_chart(fig, use_container_width=True)
 
+# Boxplot con colores personalizados
 with col2:
-    fig2, ax2 = plt.subplots()
-    sns.boxplot(x=diagnostico, y=valores, palette='Set2', ax=ax2)
-    ax2.set_title("Boxplot por Diagnóstico")
-    st.pyplot(fig2)
-
+    fig2 = px.box(
+        df,
+        x='Diagnóstico',
+        y=variable_seleccionada,
+        color='Diagnóstico',
+        title="Boxplot por Diagnóstico",
+        color_discrete_map={
+            'Benigno': 'steelblue',  # Azul para 'Benigno'
+            'Maligno': 'firebrick'    # Rojo para 'Maligno'
+        }
+    )
+    st.plotly_chart(fig2, use_container_width=True)
 
 # Estadísticas descriptivas
 st.subheader("Estadísticas Descriptivas")
@@ -143,12 +168,17 @@ st.subheader("Relación con otras variables")
 otras_variables = [var for var in variables if var != variable_seleccionada]
 otra_variable = st.selectbox("Seleccione otra variable para comparar", otras_variables)
 
-fig3, ax3 = plt.subplots()
-sns.scatterplot(x=df[variable_seleccionada], y=df[otra_variable], hue=df['Diagnóstico'], palette='Set1', ax=ax3)
-ax3.set_xlabel(variable_seleccionada)
-ax3.set_ylabel(otra_variable)
-ax3.set_title("Gráfico de dispersión")
-st.pyplot(fig3)
+fig3 = px.scatter(
+    df,
+    x=variable_seleccionada,
+    y=otra_variable,
+    color='Diagnóstico',
+    title="Gráfico de dispersión interactivo",
+    color_discrete_sequence=px.colors.qualitative.Set1,
+    hover_data=df.columns
+)
+
+st.plotly_chart(fig3, use_container_width=True)
 
 
 st.markdown("""
@@ -166,31 +196,49 @@ st.markdown("""
 ---
 """)
 
-st.subheader("Matriz de correlacion entre las variables de estudio")
+
+st.subheader("Matriz de correlación entre las variables de estudio")
 st.markdown("""
     <div style="text-align: justify;">
         A continuación, se presenta la matriz de correlación, la cual permite identificar la intensidad y dirección de las relaciones entre las variables numéricas del dataset. Este análisis resulta útil para detectar posibles asociaciones relevantes que podrían influir en el modelado posterior.
     </div>
     """, unsafe_allow_html=True)
 
+# Copia del DataFrame y codificación
 df_temp = df.copy()
-
-# Codifica la variable 'Diagnóstico' como 0 y 1
 df_temp['Diagnóstico'] = df_temp['Diagnóstico'].map({'Benigno': 0, 'Maligno': 1})
 
-# Selecciona solo las columnas numéricas
+# Filtrado numérico y cálculo de correlación
 df_numericas = df_temp.select_dtypes(include=[float, int])
-
-# Calcula la matriz de correlación
 matriz_correlacion = df_numericas.corr()
 
-# Visualiza la matriz de correlación con un mapa de calor
-correlacion_fig, ax = plt.subplots(figsize=(10, 8))
-sns.heatmap(matriz_correlacion, annot=False, cmap='coolwarm', fmt=".2f", linewidths=0.5)
-plt.title('Matriz de Correlación')
-plt.tight_layout()
+# Forzamos la diagonal a 1
+np.fill_diagonal(matriz_correlacion.values, 1)
 
-st.pyplot(correlacion_fig)
+# Heatmap sin anotaciones
+fig_corr = go.Figure(
+    data=go.Heatmap(
+        z=matriz_correlacion.values,
+        x=matriz_correlacion.columns,
+        y=matriz_correlacion.index,
+        colorscale='RdYlBu_r',
+        zmin=-1, zmax=1,
+        showscale=True
+    )
+)
+
+fig_corr.update_layout(
+    width=1000,
+    height=600,
+    margin=dict(l=100, r=20, t=30, b=30),
+    xaxis=dict(tickangle=45),
+    yaxis=dict(autorange='reversed')  # opcional: mantiene orden original
+)
+
+st.plotly_chart(fig_corr, use_container_width=False)
+
+
+
 
 st.markdown("""
 ## 🔍 Análisis de Correlaciones
@@ -296,3 +344,4 @@ if len(variables_predictoras) > 0:
             st.markdown(f"Probabilidad de ser maligno: <span style='color:red;'>🔬  {probabilidad:.2%}</span>", unsafe_allow_html=True)
 else:
     st.info("Selecciona al menos una variable para entrenar el modelo.")
+
