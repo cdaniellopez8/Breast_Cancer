@@ -6,4 +6,5 @@ requests
 ucimlrepo
 matplotlib
 seaborn
+numpy
 scikit-learn
