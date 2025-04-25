@@ -12,7 +12,7 @@ import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, confusion_matrix
-
+import scipy.stats as stats
 
   
 # Cargar el dataset
@@ -143,6 +143,24 @@ with col2:
         }
     )
     st.plotly_chart(fig2, use_container_width=True)
+
+# Filtrar los datos por diagnóstico
+grupo_benigno = df[df['Diagnóstico'] == 'Benigno'][variable_seleccionada].dropna()
+grupo_maligno = df[df['Diagnóstico'] == 'Maligno'][variable_seleccionada].dropna()
+
+# Prueba t de Student para muestras independientes
+t_stat, p_valor = stats.ttest_ind(grupo_benigno, grupo_maligno, equal_var=False)  # Welch’s t-test
+
+# Resultados
+st.subheader("Comparación de medias por diagnóstico")
+st.markdown(f"""
+<div style="text-align: justify;">
+    Se realizó una prueba t de Student para comparar las medias de la variable <strong>{variable_seleccionada}</strong> entre los grupos <strong>Benigno</strong> y <strong>Maligno</strong>.
+    El valor p obtenido fue <strong>{p_valor:.4f}</strong>. {"Esto indica una diferencia significativa entre los grupos." if p_valor < 0.05 else "No se encontraron diferencias significativas entre los grupos."}
+</div>
+""", unsafe_allow_html=True)
+
+
 
 # Estadísticas descriptivas
 st.subheader("Estadísticas Descriptivas")
