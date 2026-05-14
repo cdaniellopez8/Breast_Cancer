@@ -207,53 +207,77 @@ st.markdown("""
 st.subheader("Vista previa de los datos")
 st.dataframe(df[[variable_seleccionada, otra_variable, 'Diagnóstico']].head(6))
 
-# Correlacion
-
+# =========================
+# MATRIZ DE CORRELACIÓN
+# =========================
 
 st.markdown("""
 ---
 """)
 
-
 st.subheader("Matriz de correlación entre las variables de estudio")
+
 st.markdown("""
-    <div style="text-align: justify;">
-        A continuación, se presenta la matriz de correlación, la cual permite identificar la intensidad y dirección de las relaciones entre las variables numéricas del dataset. Este análisis resulta útil para detectar posibles asociaciones relevantes que podrían influir en el modelado posterior.
-    </div>
-    """, unsafe_allow_html=True)
+<div style="text-align: justify;">
+A continuación, se presenta la matriz de correlación, la cual permite identificar la intensidad y dirección de las relaciones entre las variables numéricas del dataset. Este análisis resulta útil para detectar posibles asociaciones relevantes que podrían influir en el modelado posterior.
+</div>
+""", unsafe_allow_html=True)
 
-# Copia del DataFrame y codificación
+# -------------------------
+# Copia del DataFrame
+# -------------------------
 df_temp = df.copy()
-df_temp['Diagnóstico'] = df_temp['Diagnóstico'].map({'Benigno': 0, 'Maligno': 1})
 
-# Filtrado numérico y cálculo de correlación
-df_numericas = df_temp.select_dtypes(include=[float, int])
+# Codificación de la variable diagnóstico
+df_temp['Diagnóstico'] = df_temp['Diagnóstico'].map({
+    'Benigno': 0,
+    'Maligno': 1
+})
+
+# -------------------------
+# Selección de variables numéricas
+# -------------------------
+df_numericas = df_temp.select_dtypes(include=['number'])
+
+# -------------------------
+# Cálculo de correlación
+# -------------------------
 matriz_correlacion = df_numericas.corr()
 
-# Forzamos la diagonal a 1
-np.fill_diagonal(matriz_correlacion.values, 1)
-
-# Heatmap sin anotaciones
+# -------------------------
+# Heatmap
+# -------------------------
 fig_corr = go.Figure(
     data=go.Heatmap(
         z=matriz_correlacion.values,
         x=matriz_correlacion.columns,
         y=matriz_correlacion.index,
         colorscale='RdYlBu_r',
-        zmin=-1, zmax=1,
+        zmin=-1,
+        zmax=1,
         showscale=True
     )
 )
 
+# -------------------------
+# Diseño del gráfico
+# -------------------------
 fig_corr.update_layout(
     width=1000,
-    height=600,
-    margin=dict(l=100, r=20, t=30, b=30),
-    xaxis=dict(tickangle=45),
-    yaxis=dict(autorange='reversed')  # opcional: mantiene orden original
+    height=700,
+    margin=dict(l=120, r=20, t=30, b=120),
+    xaxis=dict(
+        tickangle=45
+    ),
+    yaxis=dict(
+        autorange='reversed'
+    )
 )
 
-st.plotly_chart(fig_corr, use_container_width=False)
+# -------------------------
+# Mostrar gráfico
+# -------------------------
+st.plotly_chart(fig_corr, use_container_width=True)
 
 
 
